@@ -36,7 +36,6 @@ namespace HardwareAgent
 
         public string GetSystemData()
         {
-            // Construir una cadena JSON o cualquier otro formato que desees
             var data = new StringBuilder();
             data.AppendLine("{");
             data.AppendLine($"\"UserName\": \"{UserName}\",");
@@ -76,7 +75,7 @@ namespace HardwareAgent
             {
                 foreach (ManagementObject queryObj in searcher.Get())
                 {
-                    return Convert.ToUInt64(queryObj["TotalVisibleMemorySize"]) * 1024; // Convertir de KB a bytes
+                    return Convert.ToUInt64(queryObj["TotalVisibleMemorySize"]) * 1024;
                 }
             }
 
@@ -92,8 +91,8 @@ namespace HardwareAgent
         {
             using (var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"))
             {
-                cpuCounter.NextValue(); // Se llama a NextValue para obtener el valor actual
-                System.Threading.Thread.Sleep(1000); // Espera 1 segundo para obtener un valor más preciso
+                cpuCounter.NextValue();
+                System.Threading.Thread.Sleep(1000);
                 return cpuCounter.NextValue();
             }
         }

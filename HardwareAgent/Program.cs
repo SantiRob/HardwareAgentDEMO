@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Newtonsoft.Json;
 
@@ -7,46 +7,57 @@ namespace HardwareAgent
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var agent = new Agent();
-            //agent.Run();
-            SystemInfo _s = new SystemInfo();
-            var systemData = _s.GetSystemData();
-            Console.WriteLine(systemData);
-            Console.ReadLine();
-
+            await agent.RunAsync();
+            //SystemInfo s = new SystemInfo();
+            //var data = s.GetSystemData();
+            //Console.WriteLine(data);
+            //Console.ReadLine();
         }
     }
 
     class Agent
     {
         private SystemInfo _systemInfo;
-        private SocketClient _socketClient;
+        private HubConnection _hubConnection;
 
         public Agent()
         {
-            // Inicializar la clase SystemInfo para recopilar información del sistema
             _systemInfo = new SystemInfo();
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:7211/infoHardwareHub")
+                .Build();
 
-            // Inicializar el cliente de socket para enviar datos al servidor SignalR
-            _socketClient = new SocketClient();
+            _hubConnection.Closed += async (error) =>
+            {
+                await Task.Delay(new Random().Next(0, 5) * 1000);
+                await _hubConnection.StartAsync();
+            };
         }
 
-        public void Run()
+        public async Task RunAsync()
         {
-            // Iniciar el bucle principal del agente
-            while (true)
+            try
             {
-                // Recopilar datos del sistema
-                var systemData = _systemInfo.GetSystemData();
+                await _hubConnection.StartAsync();
 
-                // Enviar los datos al servidor SignalR a través del cliente de socket
-                _socketClient.SendData(systemData);
 
-                // Esperar un tiempo antes de recopilar nuevos datos
-                // Puedes ajustar este tiempo según tus necesidades
-                System.Threading.Thread.Sleep(5000); // Esperar 5 segundos
+                while (true)
+                {
+                    var systemData = _systemInfo.GetSystemData();
+
+                    var jsonData = JsonConvert.SerializeObject(systemData);
+
+                    await _hubConnection.InvokeAsync("SendHardwareInfo", jsonData);
+
+                    await Task.Delay(5000);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error en el agente: {ex.Message}");
             }
         }
     }
